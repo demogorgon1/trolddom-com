@@ -17,8 +17,10 @@
 
 {{if $cover -}}
   <!-- Cover image found -->
+ <a href="https://store.steampowered.com/app/2506440/Trolddom/">
   <img src="{{ $cover }}"
     class="post-cover"
     alt="{{ .Title | plainify | default " " }}"
-    title="{{ .Params.CoverCredit |plainify|default "Cover Image" }}" />
+    title="{{ .Params.CoverCredit |plainify|default "Steam Store" }}" />
+</a>
 {{- end }}
