@@ -26,16 +26,12 @@ paginate = 5
 	  
     [languages.en.menu]
       [[languages.en.menu.main]]
-        identifier = "Steam"
-        name = "Get on Steam"
-        url = "https://store.steampowered.com/app/2506440/Trolddom/"
-		
-      [[languages.en.menu.main]]
         identifier = "Blog"
         name = "Blog"
         url = "https://plantbasedgames.io/blog/"
+		
+	  [[languages.en.menu.main]]
+		identifier = "Discord"
+		name = "Discord"
+		url = "https://discord.gg/w2HvMHeq24"
 
-      [[languages.en.menu.main]]
-        identifier = "About"
-        name = "About"
-        url = "/about"
