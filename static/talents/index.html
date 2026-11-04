@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trolddom Talent Calculator</title>
+<style>
+:root
+{
+	--bg: #16130f;
+	--panel: #221d17;
+	--panel-edge: #4a3f30;
+	--grid-bg: #1a1612;
+	--text: #ddd5c4;
+	--text-dim: #9a907e;
+	--gold: #ffd84a;
+	--green: #4cff4c;
+	--red: #ff5a4a;
+	--link: #e8c070;
+	--cell: 44px;
+	--icon: 32px;
+}
+
+*
+{
+	box-sizing: border-box;
+}
+
+body
+{
+	margin: 0;
+	padding: 16px;
+	background: var(--bg);
+	color: var(--text);
+	font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+a.home
+{
+	display: inline-block;
+	margin-bottom: 8px;
+	color: var(--link);
+	text-decoration: none;
+	font-size: 13px;
+}
+
+a.home:hover
+{
+	text-decoration: underline;
+}
+
+h1
+{
+	margin: 0 0 4px 0;
+	font-size: 22px;
+	font-weight: 600;
+	color: var(--gold);
+}
+
+button, select
+{
+	font: inherit;
+	color: var(--text);
+	background: var(--panel);
+	border: 1px solid var(--panel-edge);
+	border-radius: 3px;
+	padding: 4px 10px;
+	cursor: pointer;
+}
+
+button:hover, select:hover
+{
+	border-color: var(--link);
+}
+
+img.pixel
+{
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+
+#status
+{
+	color: var(--text-dim);
+	margin: 24px 0;
+}
+
+#status.error
+{
+	color: var(--red);
+}
+
+/* Class picker */
+
+#classes
+{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 12px 0;
+}
+
+#classes button
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px 4px 6px;
+}
+
+#classes button img
+{
+	width: 32px;
+	height: 32px;
+}
+
+#classes button.selected
+{
+	border-color: var(--gold);
+	color: var(--gold);
+}
+
+/* Summary bar */
+
+#summary
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 20px;
+	padding: 8px 12px;
+	background: var(--panel);
+	border: 1px solid var(--panel-edge);
+	border-radius: 4px;
+	margin-bottom: 12px;
+}
+
+#summary .title
+{
+	font-size: 18px;
+	font-weight: 600;
+	color: var(--gold);
+}
+
+#summary .value
+{
+	font-weight: 600;
+}
+
+#summary .value.left
+{
+	color: var(--green);
+}
+
+#summary .spacer
+{
+	flex: 1;
+}
+
+#summary .buttons
+{
+	display: flex;
+	gap: 6px;
+}
+
+#hybrid
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 12px;
+	color: var(--text-dim);
+}
+
+/* Trees */
+
+#trees
+{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.tree
+{
+	background: var(--panel);
+	border: 1px solid var(--panel-edge);
+	border-radius: 4px;
+	padding: 8px;
+}
+
+.tree-header
+{
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.tree-header img
+{
+	width: 32px;
+	height: 32px;
+}
+
+.tree-header .name
+{
+	font-weight: 600;
+	font-size: 16px;
+}
+
+.tree-header .borrowed
+{
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.tree-header .points
+{
+	margin-left: auto;
+	font-weight: 600;
+	color: var(--gold);
+	min-width: 24px;
+	text-align: right;
+}
+
+.tree-header button
+{
+	padding: 2px 8px;
+	font-size: 12px;
+}
+
+.grid
+{
+	position: relative;
+	display: grid;
+	background: var(--grid-bg);
+	border: 1px solid #000;
+	padding: 16px 12px 8px 56px;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.grid .tier
+{
+	position: absolute;
+	left: 8px;
+	font-size: 12px;
+	color: #a0a0a0;
+}
+
+.grid .tier-line
+{
+	position: absolute;
+	left: 6px;
+	right: 6px;
+	border-top: 1px solid #555;
+}
+
+.cell
+{
+	position: relative;
+	width: var(--cell);
+	height: var(--cell);
+}
+
+.cell > img
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: var(--cell);
+	height: var(--cell);
+}
+
+.cell.arrow.dim > img
+{
+	filter: grayscale(1) brightness(0.3);
+}
+
+.cell.talent
+{
+	cursor: pointer;
+}
+
+.cell.talent img.icon
+{
+	left: calc((var(--cell) - var(--icon)) / 2);
+	top: calc((var(--cell) - var(--icon)) / 2);
+	width: var(--icon);
+	height: var(--icon);
+}
+
+.cell.talent.locked img.icon
+{
+	filter: grayscale(1) brightness(0.6);
+}
+
+.cell.talent .rank
+{
+	position: absolute;
+	right: -2px;
+	bottom: -2px;
+	padding: 0 2px;
+	background: #000;
+	font-size: 10px;
+	line-height: 12px;
+	color: #c8c8c8;
+	pointer-events: none;
+}
+
+.cell.talent.available .rank
+{
+	color: var(--green);
+}
+
+.cell.talent.partial .rank, .cell.talent.max .rank
+{
+	color: var(--gold);
+}
+
+/* Tooltip */
+
+#tooltip
+{
+	position: fixed;
+	z-index: 10;
+	width: 300px;
+	max-width: calc(100vw - 32px);
+	padding: 8px 10px;
+	background: rgba(12, 10, 8, 0.96);
+	border: 1px solid var(--panel-edge);
+	border-radius: 4px;
+	font-size: 12px;
+	pointer-events: none;
+	display: none;
+}
+
+#tooltip.touch
+{
+	pointer-events: auto;
+}
+
+#tooltip .head
+{
+	display: flex;
+	align-items: baseline;
+}
+
+#tooltip .name
+{
+	font-size: 14px;
+	color: #fff;
+}
+
+#tooltip .type
+{
+	margin-left: auto;
+	font-style: italic;
+	color: #c8c8c8;
+}
+
+#tooltip .rank
+{
+	color: var(--text-dim);
+	margin-bottom: 6px;
+}
+
+#tooltip p
+{
+	margin: 0 0 6px 0;
+	white-space: pre-line;
+}
+
+#tooltip .next
+{
+	color: var(--text-dim);
+}
+
+#tooltip .req
+{
+	color: var(--red);
+}
+
+#tooltip .formula
+{
+	color: var(--gold);
+}
+
+#tooltip .spread
+{
+	color: var(--text-dim);
+}
+
+#tooltip .hint
+{
+	color: var(--green);
+	margin-top: 4px;
+}
+
+#tooltip .hint.remove
+{
+	color: var(--text-dim);
+}
+
+#tooltip .range
+{
+	margin-left: auto;
+	color: #c8c8c8;
+}
+
+#tooltip .stat
+{
+	color: #e0e0e0;
+}
+
+#tooltip .source
+{
+	color: var(--text-dim);
+	margin-top: 4px;
+}
+
+/* Abilities strip */
+
+#abilities
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 6px 4px;
+	padding: 8px;
+	margin-bottom: 12px;
+	background: var(--panel);
+	border: 1px solid var(--panel-edge);
+	border-radius: 4px;
+}
+
+#abilities .label
+{
+	width: 100%;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+#abilities .separator
+{
+	align-self: stretch;
+	width: 1px;
+	margin: 0 6px;
+	background: var(--panel-edge);
+}
+
+.ability
+{
+	width: 36px;
+	text-align: center;
+	cursor: default;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.ability img
+{
+	display: block;
+	width: 32px;
+	height: 32px;
+	margin: 0 auto;
+	border: 1px solid #000;
+}
+
+.ability .level
+{
+	font-size: 10px;
+	line-height: 14px;
+	color: var(--text-dim);
+}
+
+.ability.talent .level
+{
+	color: var(--gold);
+}
+
+#tooltip .touch-buttons
+{
+	display: flex;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+#tooltip .touch-buttons button
+{
+	flex: 1;
+	padding: 6px;
+}
+
+footer
+{
+	margin-top: 16px;
+	color: var(--text-dim);
+	font-size: 12px;
+}
+
+@media (max-width: 480px)
+{
+	body
+	{
+		padding: 8px;
+	}
+
+	/* Cells shrink so the widest trees (9 columns) fit: 46px is the tree and grid padding and borders. 100cqw is the
+	   width of #trees (without a scrollbar), with the screen width as a fallback for older browsers. */
+	#trees
+	{
+		container-type: inline-size;
+	}
+
+	.grid
+	{
+		--cell: min(40px, calc((100vw - 64px) / var(--columns)));
+		--cell: min(40px, calc((100cqw - 46px) / var(--columns)));
+		--icon: calc(var(--cell) * 0.72);
+		padding-left: 12px;
+	}
+
+	.grid .tier, .grid .tier-line
+	{
+		display: none;
+	}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="/">&larr; trolddom.com</a>
+<h1>Trolddom Talent Calculator</h1>
+<div id="status">Loading...</div>
+<div id="app" hidden>
+	<div id="classes"></div>
+	<div id="summary">
+		<span class="title" id="class-title"></span>
+		<span>Points left: <span class="value left" id="points-left"></span></span>
+		<span>Required level: <span class="value" id="required-level"></span></span>
+		<span class="spacer"></span>
+		<span class="buttons">
+			<button id="reset-all">Reset all</button>
+			<button id="copy-link">Copy link</button>
+		</span>
+	</div>
+	<div id="hybrid"></div>
+	<div id="abilities"></div>
+	<div id="trees"></div>
+	<footer>Click to learn a talent, right-click (or shift-click) to unlearn. On touch screens, tap a talent for its buttons.</footer>
+</div>
+<div id="tooltip"></div>
+
+<script>
+"use strict";
+
+// Data from manifest.json (loaded from the same folder, or ?manifest=<url>)
+let g_manifest = null;
+let g_talentTreesByName = {};		// Talent tree name -> tree from the manifest
+let g_classesByName = {};
+let g_classesByTalentTreeName = {};	// Talent tree name -> class it belongs to
+
+// Current build
+let g_class = null;
+let g_hybridTree = null;			// Name of the borrowed talent tree, or null
+let g_replacedTree = null;			// Name of the class' tree it replaces
+let g_points = {};					// Talent name -> points
+
+// Views of the trees currently shown
+let g_treeViews = [];
+
+let g_tooltipTalent = null;			// Talent cell the tooltip is for
+let g_touchTooltip = false;
+
+//-----------------------------------------------------------------------------
+// Helpers
+
+function SpriteURL(aIndex)
+{
+	return "data:image/png;base64," + g_manifest.sprites[aIndex];
+}
+
+function CreateElement(aTag, aClassName, aText)
+{
+	let element = document.createElement(aTag);
+	if(aClassName)
+		element.className = aClassName;
+	if(aText !== undefined)
+		element.textContent = aText;
+	return element;
+}
+
+function CreateSprite(aIndex, aClassName)
+{
+	let img = CreateElement("img", "pixel" + (aClassName ? " " + aClassName : ""));
+	img.src = SpriteURL(aIndex);
+	img.alt = "";
+	img.draggable = false;
+	return img;
+}
+
+function GetTalent(aName)
+{
+	return g_manifest.talents[aName];
+}
+
+function GetPoints(aTalentName)
+{
+	return g_points[aTalentName] || 0;
+}
+
+//-----------------------------------------------------------------------------
+// Rules (same as the game: a talent needs the points in its tree and one point in each prerequisite)
+
+// Talent trees of the current build, in order, with the borrowed tree in place of the replaced one
+function GetCurrentTrees()
+{
+	let trees = [];
+	for(let tree of g_class.talent_trees)
+	{
+		if(g_hybridTree && tree.name === g_replacedTree)
+			trees.push(g_talentTreesByName[g_hybridTree]);
+		else
+			trees.push(tree);
+	}
+	return trees;
+}
+
+function GetTreeTalentNames(aTree)
+{
+	let names = [];
+	for(let entry of aTree.palette)
+	{
+		if(entry.talent)
+			names.push(entry.talent);
+	}
+	return names;
+}
+
+function GetTreePoints(aTree, aPoints)
+{
+	let points = 0;
+	for(let name of GetTreeTalentNames(aTree))
+		points += aPoints[name] || 0;
+	return points;
+}
+
+function GetSpentPoints()
+{
+	let points = 0;
+	for(let tree of GetCurrentTrees())
+		points += GetTreePoints(tree, g_points);
+	return points;
+}
+
+function GetMissingRequirements(aTree, aTalentName, aPoints)
+{
+	let talent = GetTalent(aTalentName);
+	let missing = [];
+
+	let treePoints = GetTreePoints(aTree, aPoints);
+	if(treePoints < talent.talent_tree_points_required)
+		missing.push("Requires " + talent.talent_tree_points_required + " points in " + aTree.string);
+
+	for(let prerequisite of talent.prerequisites)
+	{
+		if(!(aPoints[prerequisite] > 0))
+			missing.push("Requires " + GetTalent(prerequisite).string);
+	}
+
+	return missing;
+}
+
+function CanAddPoint(aTree, aTalentName)
+{
+	let talent = GetTalent(aTalentName);
+	if(GetPoints(aTalentName) >= talent.ranks.length)
+		return false;
+	if(GetSpentPoints() >= g_manifest.talent_points)
+		return false;
+	return GetMissingRequirements(aTree, aTalentName, g_points).length === 0;
+}
+
+// Puts the given points in, one at a time, in any order the rules allow. Adding points never makes another talent
+// unavailable, so if this can't place them all, no order can. Returns the points that could be placed.
+function PlacePoints(aTrees, aWanted)
+{
+	let placed = {};
+	let progress = true;
+
+	while(progress)
+	{
+		progress = false;
+
+		for(let tree of aTrees)
+		{
+			for(let name of GetTreeTalentNames(tree))
+			{
+				let wanted = Math.min(aWanted[name] || 0, GetTalent(name).ranks.length);
+				while((placed[name] || 0) < wanted && GetMissingRequirements(tree, name, placed).length === 0)
+				{
+					placed[name] = (placed[name] || 0) + 1;
+					progress = true;
+				}
+			}
+		}
+	}
+
+	return placed;
+}
+
+function IsSameBuild(aA, aB)
+{
+	for(let name in aA)
+	{
+		if((aA[name] || 0) !== (aB[name] || 0))
+			return false;
+	}
+	for(let name in aB)
+	{
+		if((aA[name] || 0) !== (aB[name] || 0))
+			return false;
+	}
+	return true;
+}
+
+function CanRemovePoint(aTalentName)
+{
+	if(GetPoints(aTalentName) === 0)
+		return false;
+
+	let wanted = Object.assign({}, g_points);
+	wanted[aTalentName]--;
+	return IsSameBuild(PlacePoints(GetCurrentTrees(), wanted), wanted);
+}
+
+// Keeps only points in the current trees that the rules allow, up to the total
+function CleanUpPoints()
+{
+	let placed = PlacePoints(GetCurrentTrees(), g_points);
+
+	// Over the total (only from a hand-edited link): drop points from the deepest talents first
+	let total = 0;
+	for(let name in placed)
+		total += placed[name];
+
+	while(total > g_manifest.talent_points)
+	{
+		let removed = false;
+		for(let tree of GetCurrentTrees().slice().reverse())
+		{
+			let names = GetTreeTalentNames(tree).filter(name => placed[name] > 0);
+			names.sort((a, b) => GetTalent(b).talent_tree_points_required - GetTalent(a).talent_tree_points_required);
+			for(let name of names)
+			{
+				let wanted = Object.assign({}, placed);
+				wanted[name]--;
+				if(IsSameBuild(PlacePoints(GetCurrentTrees(), wanted), wanted))
+				{
+					placed = wanted;
+					total--;
+					removed = true;
+					break;
+				}
+			}
+			if(removed)
+				break;
+		}
+		if(!removed)
+			break;
+	}
+
+	g_points = {};
+	for(let name in placed)
+	{
+		if(placed[name] > 0)
+			g_points[name] = placed[name];
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Build in the URL: #<class>/<borrowed tree>~<replaced tree> or -/<one digit string per tree, in palette order>
+
+function WriteHash()
+{
+	let treeStrings = GetCurrentTrees().map(tree =>
+	{
+		let s = GetTreeTalentNames(tree).map(name => String(GetPoints(name))).join("");
+		return s.replace(/0+$/, "");
+	});
+
+	let hybrid = g_hybridTree ? g_hybridTree + "~" + g_replacedTree : "-";
+	let hash = "#" + g_class.name + "/" + hybrid + "/" + treeStrings.join(".");
+	history.replaceState(null, "", hash);
+}
+
+function ReadHash()
+{
+	let parts = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
+	let cls = g_classesByName[parts[0]] || g_manifest.classes[0];
+
+	g_class = cls;
+	g_hybridTree = null;
+	g_replacedTree = null;
+	g_points = {};
+
+	if(parts[0] !== cls.name)
+		return;
+
+	if(parts.length > 1 && parts[1] !== "-")
+	{
+		let [hybridTree, replacedTree] = parts[1].split("~");
+		if(cls.hybrid_talent_trees.some(h => h.talent_tree === hybridTree) && cls.talent_trees.some(t => t.name === replacedTree))
+		{
+			g_hybridTree = hybridTree;
+			g_replacedTree = replacedTree;
+		}
+	}
+
+	if(parts.length > 2)
+	{
+		let treeStrings = parts[2].split(".");
+		GetCurrentTrees().forEach((tree, i) =>
+		{
+			let s = treeStrings[i] || "";
+			GetTreeTalentNames(tree).forEach((name, j) =>
+			{
+				let points = parseInt(s.charAt(j), 10);
+				if(points > 0)
+					g_points[name] = points;
+			});
+		});
+	}
+
+	CleanUpPoints();
+}
+
+//-----------------------------------------------------------------------------
+// Damage and heal formulas ($damage$ and $heal$ in ability descriptions, which the game calculates from the player's
+// stats). Level curves are already at max level in the manifest.
+
+const INPUT_NAMES =
+{
+	health_current: "health",
+	health_max: "max health",
+	mana_current: "mana",
+	mana_max: "max mana",
+	mana_base: "base mana",
+	level: "level",
+	spell_damage: "spell damage",
+	healing: "healing",
+	weapon: "weapon damage",
+	weapon_average: "average weapon damage",
+	ranged: "ranged weapon damage",
+	ranged_average: "average ranged weapon damage",
+	weapon_normalized: "normalized weapon damage",
+	weapon_average_normalized: "average normalized weapon damage",
+	attack_power: "attack power",
+	pvp_control_points: "PvP control points",
+	owner_spell_damage: "owner's spell damage",
+	owner_healing: "owner's healing",
+	minion_weapon: "weapon damage",
+	block_value: "block value",
+	strength: "strength"
+};
+
+// Ability modifiers the current build has: the ones given by the current rank of each talent
+function GetActiveAbilityModifiers()
+{
+	let active = new Set();
+	for(let tree of GetCurrentTrees())
+	{
+		for(let name of GetTreeTalentNames(tree))
+		{
+			let points = GetPoints(name);
+			if(points > 0)
+			{
+				let modifier = GetTalent(name).ranks[points - 1].ability_modifier;
+				if(modifier)
+					active.add(modifier);
+			}
+		}
+	}
+	return active;
+}
+
+// Same checks as the game's tooltip
+function IsEffectActive(aEffect, aActiveModifiers)
+{
+	for(let modifier of aEffect.must_have || [])
+	{
+		if(!aActiveModifiers.has(modifier))
+			return false;
+	}
+	for(let modifier of aEffect.must_not_have || [])
+	{
+		if(aActiveModifiers.has(modifier))
+			return false;
+	}
+	return true;
+}
+
+// A function as terms ({ input, factor }) plus a constant
+function GetFunctionTerms(aFunction)
+{
+	let terms = [];
+	let constant = 0;
+
+	switch(aFunction.expression)
+	{
+	case "a":							constant = aFunction.a; break;
+	case "a_mul_x":						terms.push({ input: aFunction.x, factor: aFunction.a }); break;
+	case "a_mul_x_plus_b":				terms.push({ input: aFunction.x, factor: aFunction.a }); constant = aFunction.b; break;
+	case "a_mul_x_plus_b_mul_y":		terms.push({ input: aFunction.x, factor: aFunction.a }, { input: aFunction.y, factor: aFunction.b }); break;
+	case "a_mul_x_plus_b_mul_y_plus_c":	terms.push({ input: aFunction.x, factor: aFunction.a }, { input: aFunction.y, factor: aFunction.b }); constant = aFunction.c; break;
+	case "x_plus_a":					terms.push({ input: aFunction.x, factor: 1 }); constant = aFunction.a; break;
+	case "x":							terms.push({ input: aFunction.x, factor: 1 }); break;
+	default:							return null;
+	}
+
+	let prefix = aFunction.entity === "target" ? "target's " : "";
+	for(let term of terms)
+		term.name = prefix + (INPUT_NAMES[term.input] || term.input);
+
+	return { terms: terms, constant: constant };
+}
+
+function FormatNumber(aValue)
+{
+	return String(Math.round(aValue * 10) / 10);
+}
+
+// Text for the effects of one kind ("damage" or "heal") in a rank, added up like the game does, or null
+function GetFormula(aRank, aKind, aActiveModifiers)
+{
+	let effects = ((aRank.formulas || {})[aKind] || []).filter(effect => IsEffectActive(effect, aActiveModifiers));
+	if(effects.length === 0)
+		return null;
+
+	let terms = [];
+	let constant = 0;
+	let spreads = new Set();
+	let damageType = null;
+	let percentOfMaxHealth = false;
+
+	for(let effect of effects)
+	{
+		let f = GetFunctionTerms(effect.function);
+		if(!f)
+			return null;
+
+		// Damage multipliers from ability modifiers the build has
+		let multiplier = 1;
+		for(let m of effect.multipliers || [])
+		{
+			if(aActiveModifiers.has(m.ability_modifier))
+				multiplier *= m.multiplier;
+		}
+
+		for(let term of f.terms)
+		{
+			let existing = terms.find(t => t.name === term.name);
+			if(existing)
+				existing.factor += term.factor * multiplier;
+			else
+				terms.push({ name: term.name, factor: term.factor * multiplier });
+		}
+		constant += f.constant * multiplier;
+
+		if(effect.function.spread)
+			spreads.add("±" + FormatNumber(effect.function.spread * multiplier));
+		if(effect.spread)
+			spreads.add("±" + FormatNumber(effect.spread * 100) + "%");
+		if(effect.damage_type)
+			damageType = effect.damage_type;
+		if(effect.max_health_percentage)
+			percentOfMaxHealth = true;
+	}
+
+	// "35% of spell damage", but "24 × block value" for big factors
+	let parts = terms.map(term =>
+	{
+		if(Math.abs(term.factor - 1) < 0.0001)
+			return term.name;
+		if(term.factor >= 5)
+			return FormatNumber(term.factor) + " × " + term.name;
+		return FormatNumber(term.factor * 100) + "% of " + term.name;
+	});
+
+	if(Math.round(constant) !== 0 || parts.length === 0)
+		parts.push(String(Math.round(constant)));
+
+	// In parentheses unless it's just a number, so it doesn't run into the description ("(150% of ranged weapon damage) damage")
+	let text = parts.join(" + ");
+	if(terms.length > 0)
+		text = "(" + text + ")";
+	if(percentOfMaxHealth)
+		text += "% of target's max health";
+
+	return { text: text, spread: [...spreads].join(" "), damageType: damageType && damageType !== "physical" ? damageType : null };
+}
+
+// Description paragraph with $damage$ and $heal$ replaced by formulas
+function CreateDescription(aRank)
+{
+	let p = CreateElement("p");
+	let activeModifiers = GetActiveAbilityModifiers();
+	let parts = aRank.description.split("$");
+
+	parts.forEach((part, i) =>
+	{
+		// Odd parts are between $ signs
+		if(i % 2 === 0)
+		{
+			p.appendChild(document.createTextNode(part));
+			return;
+		}
+
+		let formula = (part === "damage" || part === "heal") ? GetFormula(aRank, part, activeModifiers) : null;
+		if(!formula)
+		{
+			p.appendChild(document.createTextNode("?"));
+			return;
+		}
+
+		p.appendChild(CreateElement("span", "formula", formula.text));
+		if(formula.spread)
+			p.appendChild(CreateElement("span", "spread", " " + formula.spread));
+		if(formula.damageType)
+			p.appendChild(document.createTextNode(" " + formula.damageType));
+	});
+
+	return p;
+}
+
+//-----------------------------------------------------------------------------
+// Tooltip
+
+function ShowTooltip(aTreeView, aCell, aX, aY)
+{
+	let tooltip = document.getElementById("tooltip");
+	let talent = GetTalent(aCell.talentName);
+	let points = GetPoints(aCell.talentName);
+	let maxPoints = talent.ranks.length;
+
+	g_tooltipTalent = aCell;
+
+	tooltip.textContent = "";
+
+	let head = CreateElement("div", "head");
+	head.appendChild(CreateElement("span", "name", talent.string));
+	let currentRank = talent.ranks[Math.max(points - 1, 0)];
+	head.appendChild(CreateElement("span", "type", currentRank.passive ? "Passive" : "Ability"));
+	tooltip.appendChild(head);
+
+	tooltip.appendChild(CreateElement("div", "rank", "Rank " + points + "/" + maxPoints));
+
+	if(points === 0)
+	{
+		tooltip.appendChild(CreateDescription(talent.ranks[0]));
+	}
+	else
+	{
+		tooltip.appendChild(CreateDescription(currentRank));
+
+		if(points < maxPoints)
+		{
+			tooltip.appendChild(CreateElement("p", "next", "Next rank:"));
+			tooltip.appendChild(CreateDescription(talent.ranks[points]));
+		}
+	}
+
+	if(points < maxPoints)
+	{
+		for(let missing of GetMissingRequirements(aTreeView.tree, aCell.talentName, g_points))
+			tooltip.appendChild(CreateElement("div", "req", missing));
+	}
+
+	let canAdd = CanAddPoint(aTreeView.tree, aCell.talentName);
+	let canRemove = CanRemovePoint(aCell.talentName);
+
+	if(g_touchTooltip)
+	{
+		let buttons = CreateElement("div", "touch-buttons");
+
+		let addButton = CreateElement("button", "", "Learn");
+		addButton.disabled = !canAdd;
+		addButton.addEventListener("click", () => { AddPoint(aTreeView, aCell); ShowTooltip(aTreeView, aCell, aX, aY); });
+		buttons.appendChild(addButton);
+
+		let removeButton = CreateElement("button", "", "Unlearn");
+		removeButton.disabled = !canRemove;
+		removeButton.addEventListener("click", () => { RemovePoint(aCell); ShowTooltip(aTreeView, aCell, aX, aY); });
+		buttons.appendChild(removeButton);
+
+		let closeButton = CreateElement("button", "", "Close");
+		closeButton.addEventListener("click", HideTooltip);
+		buttons.appendChild(closeButton);
+
+		tooltip.appendChild(buttons);
+		tooltip.classList.add("touch");
+	}
+	else
+	{
+		if(canAdd)
+			tooltip.appendChild(CreateElement("div", "hint", "Click to learn"));
+		else if(canRemove)
+			tooltip.appendChild(CreateElement("div", "hint remove", "Right-click to unlearn"));
+		tooltip.classList.remove("touch");
+	}
+
+	tooltip.style.display = "block";
+	MoveTooltip(aX, aY);
+}
+
+function MoveTooltip(aX, aY)
+{
+	let tooltip = document.getElementById("tooltip");
+	let width = tooltip.offsetWidth;
+	let height = tooltip.offsetHeight;
+
+	let x = aX + 16;
+	let y = aY + 16;
+	if(x + width > window.innerWidth - 8)
+		x = Math.max(8, aX - width - 16);
+	if(y + height > window.innerHeight - 8)
+		y = Math.max(8, window.innerHeight - height - 8);
+
+	tooltip.style.left = x + "px";
+	tooltip.style.top = y + "px";
+}
+
+function HideTooltip()
+{
+	document.getElementById("tooltip").style.display = "none";
+	g_tooltipTalent = null;
+	g_touchTooltip = false;
+}
+
+//-----------------------------------------------------------------------------
+// Abilities: the class' abilities up to max level (with the hybrid tree if there is one), then the abilities learned
+// from talents in the build
+
+function GetBuildAbilities()
+{
+	let list = g_class.abilities;
+	if(g_hybridTree)
+	{
+		let hybrid = g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree);
+		list = hybrid.abilities[g_replacedTree] || list;
+	}
+
+	let abilities = list.map(entry => ({ name: entry.ability, level: entry.level, talentName: null }));
+	let names = new Set(abilities.map(entry => entry.name));
+
+	for(let tree of GetCurrentTrees())
+	{
+		for(let talentName of GetTreeTalentNames(tree))
+		{
+			let points = GetPoints(talentName);
+			let ability = points > 0 ? GetTalent(talentName).ranks[points - 1].ability : null;
+			if(ability && !names.has(ability))
+			{
+				names.add(ability);
+				abilities.push({ name: ability, level: null, talentName: talentName });
+			}
+		}
+	}
+
+	return abilities.filter(entry => g_manifest.abilities[entry.name]);
+}
+
+// Range, cost, cast time and cooldown changes from the build's ability modifiers
+function GetAbilityModifications(aAbilityName)
+{
+	let result = { range: 0, castTime: 0, cooldown: 0, costs: {} };
+	for(let name of GetActiveAbilityModifiers())
+	{
+		let modifier = (g_manifest.ability_modifiers || {})[name];
+		if(!modifier || modifier.abilities.indexOf(aAbilityName) < 0)
+			continue;
+
+		result.range += modifier.modify_range || 0;
+		result.castTime += modifier.modify_cast_time || 0;
+		result.cooldown += modifier.modify_cooldown || 0;
+		if(modifier.modify_resource_cost)
+		{
+			let resource = modifier.modify_resource_cost.resource;
+			result.costs[resource] = (result.costs[resource] || 0) + modifier.modify_resource_cost.value;
+		}
+	}
+	return result;
+}
+
+// Tenths of seconds to text, like the game
+function FormatSeconds(aTenths)
+{
+	return String(Math.round(aTenths) / 10);
+}
+
+function ShowAbilityTooltip(aEntry, aX, aY)
+{
+	let tooltip = document.getElementById("tooltip");
+	let ability = g_manifest.abilities[aEntry.name];
+	let modifications = GetAbilityModifications(aEntry.name);
+
+	g_tooltipTalent = aEntry;
+
+	tooltip.textContent = "";
+
+	let head = CreateElement("div", "head");
+	head.appendChild(CreateElement("span", "name", ability.string));
+	if(ability.range !== undefined)
+	{
+		let range = ability.range + modifications.range;
+		let text = ability.melee ? "Melee" : ability.min_range ? "Range " + ability.min_range + " - " + range : "Range " + range;
+		head.appendChild(CreateElement("span", "range", text));
+	}
+	tooltip.appendChild(head);
+
+	for(let cost of ability.costs)
+	{
+		let value = cost.value + (modifications.costs[cost.resource] || 0);
+		if(value <= 0)
+			continue;
+		let text = cost.percent_of_base_mana ? value + "% of base " + cost.resource.toLowerCase() : value + " " + cost.resource;
+		tooltip.appendChild(CreateElement("div", "stat", text));
+	}
+
+	if(ability.ranged_cast_time)
+	{
+		tooltip.appendChild(CreateElement("div", "stat", "Cast time: ranged weapon speed"));
+	}
+	else
+	{
+		let castTime = ability.cast_time + modifications.castTime;
+		tooltip.appendChild(CreateElement("div", "stat", castTime <= 0 ? "Instant" : FormatSeconds(castTime) + " seconds cast"));
+	}
+
+	let cooldown = ability.cooldown + modifications.cooldown;
+	if(cooldown > 0)
+	{
+		let text;
+		if(cooldown >= 1200)
+			text = Math.round(cooldown / 600) + " minutes cooldown";
+		else if(FormatSeconds(cooldown) === "1")
+			text = "1 second cooldown";
+		else
+			text = FormatSeconds(cooldown) + " seconds cooldown";
+		tooltip.appendChild(CreateElement("div", "stat", text));
+	}
+
+	let description = CreateDescription(ability);
+	description.style.marginTop = "6px";
+	tooltip.appendChild(description);
+
+	if(aEntry.talentName)
+		tooltip.appendChild(CreateElement("div", "source", "From talent: " + GetTalent(aEntry.talentName).string));
+	else
+		tooltip.appendChild(CreateElement("div", "source", "Learned at level " + aEntry.level));
+
+	if(g_touchTooltip)
+	{
+		let buttons = CreateElement("div", "touch-buttons");
+		let closeButton = CreateElement("button", "", "Close");
+		closeButton.addEventListener("click", HideTooltip);
+		buttons.appendChild(closeButton);
+		tooltip.appendChild(buttons);
+		tooltip.classList.add("touch");
+	}
+	else
+	{
+		tooltip.classList.remove("touch");
+	}
+
+	tooltip.style.display = "block";
+	MoveTooltip(aX, aY);
+}
+
+function UpdateAbilities()
+{
+	let element = document.getElementById("abilities");
+	element.textContent = "";
+	element.appendChild(CreateElement("div", "label", "Abilities"));
+
+	let separated = false;
+
+	for(let entry of GetBuildAbilities())
+	{
+		if(entry.talentName && !separated)
+		{
+			element.appendChild(CreateElement("div", "separator"));
+			separated = true;
+		}
+
+		// Some abilities (like Attack) show the icon of the class' start weapon
+		let ability = g_manifest.abilities[entry.name];
+		let icon = (g_class.ability_icons || {})[entry.name];
+		if(icon === undefined)
+			icon = ability.icon;
+		let item = CreateElement("div", "ability" + (entry.talentName ? " talent" : ""));
+		if(icon !== null)
+			item.appendChild(CreateSprite(icon));
+		item.appendChild(CreateElement("div", "level", entry.talentName ? "Talent" : "Lv " + entry.level));
+		AddAbilityEvents(item, entry);
+		element.appendChild(item);
+	}
+
+	// The ability icons were rebuilt, so close a tooltip for one of the old ones
+	if(g_tooltipTalent && g_tooltipTalent.name !== undefined)
+		HideTooltip();
+}
+
+function AddAbilityEvents(aElement, aEntry)
+{
+	aElement.addEventListener("pointerdown", (event) =>
+	{
+		if(event.pointerType === "touch")
+		{
+			event.preventDefault();
+			g_touchTooltip = true;
+			ShowAbilityTooltip(aEntry, event.clientX, event.clientY);
+		}
+	});
+
+	aElement.addEventListener("pointerenter", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip)
+			ShowAbilityTooltip(aEntry, event.clientX, event.clientY);
+	});
+
+	aElement.addEventListener("pointermove", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip && g_tooltipTalent === aEntry)
+			MoveTooltip(event.clientX, event.clientY);
+	});
+
+	aElement.addEventListener("pointerleave", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip && g_tooltipTalent === aEntry)
+			HideTooltip();
+	});
+}
+
+//-----------------------------------------------------------------------------
+// Changing the build
+
+function AddPoint(aTreeView, aCell)
+{
+	if(!CanAddPoint(aTreeView.tree, aCell.talentName))
+		return;
+	g_points[aCell.talentName] = GetPoints(aCell.talentName) + 1;
+	OnBuildChanged();
+}
+
+function RemovePoint(aCell)
+{
+	if(!CanRemovePoint(aCell.talentName))
+		return;
+	g_points[aCell.talentName]--;
+	if(g_points[aCell.talentName] === 0)
+		delete g_points[aCell.talentName];
+	OnBuildChanged();
+}
+
+function ResetTree(aTree)
+{
+	for(let name of GetTreeTalentNames(aTree))
+		delete g_points[name];
+	OnBuildChanged();
+}
+
+function OnBuildChanged()
+{
+	WriteHash();
+	UpdateView();
+}
+
+//-----------------------------------------------------------------------------
+// Views
+
+function CreateTreeView(aTree)
+{
+	let view = { tree: aTree, cells: [], arrowGroups: [] };
+
+	let element = CreateElement("div", "tree");
+
+	// Header
+	let header = CreateElement("div", "tree-header");
+	header.appendChild(CreateSprite(aTree.icon));
+	let nameBox = CreateElement("div");
+	nameBox.appendChild(CreateElement("div", "name", aTree.string));
+	if(g_hybridTree === aTree.name)
+	{
+		let hybrid = g_class.hybrid_talent_trees.find(h => h.talent_tree === aTree.name);
+		nameBox.appendChild(CreateElement("div", "borrowed", "Borrowed (" + hybrid.string + ")"));
+	}
+	header.appendChild(nameBox);
+	view.pointsElement = CreateElement("span", "points");
+	header.appendChild(view.pointsElement);
+	let resetButton = CreateElement("button", "", "Reset");
+	resetButton.title = "Reset this tree";
+	resetButton.addEventListener("click", () => ResetTree(aTree));
+	header.appendChild(resetButton);
+	header.title = aTree.description;
+	element.appendChild(header);
+
+	// Grid
+	let rows = aTree.map.length;
+	let columns = rows > 0 ? aTree.map[0].length : 0;
+
+	let grid = CreateElement("div", "grid");
+	grid.style.setProperty("--columns", String(Math.max(columns, 1)));
+	grid.style.gridTemplateColumns = "repeat(" + columns + ", var(--cell))";
+	grid.style.gridTemplateRows = "repeat(" + rows + ", var(--cell))";
+
+	// Tiers, two rows each like in the game
+	let numTiers = rows > 1 ? Math.floor((rows + 1) / 2) : 1;
+	for(let i = 0; i < numTiers; i++)
+	{
+		let tier = CreateElement("div", "tier", "Tier " + (i + 1));
+		tier.style.top = "calc(16px + " + (i * 2) + " * var(--cell) + 4px)";
+		grid.appendChild(tier);
+		if(i > 0)
+		{
+			let line = CreateElement("div", "tier-line");
+			line.style.top = "calc(16px + " + (i * 2) + " * var(--cell) - 6px)";
+			grid.appendChild(line);
+		}
+	}
+
+	let paletteBySymbol = {};
+	for(let entry of aTree.palette)
+		paletteBySymbol[entry.symbol] = entry;
+
+	let cellGrid = [];
+
+	for(let y = 0; y < rows; y++)
+	{
+		for(let x = 0; x < columns; x++)
+		{
+			let entry = paletteBySymbol[aTree.map[y].charAt(x)];
+			let cellElement = CreateElement("div", "cell");
+			cellElement.style.gridColumn = String(x + 1);
+			cellElement.style.gridRow = String(y + 1);
+
+			let cell = { x: x, y: y, element: cellElement, talentName: null, arrow: false };
+
+			if(entry && entry.talent)
+			{
+				let talent = GetTalent(entry.talent);
+				cell.talentName = entry.talent;
+				cellElement.classList.add("talent");
+				cell.frame = CreateSprite(g_manifest.ui_sprites.talent_tree_cell);
+				cellElement.appendChild(cell.frame);
+				cellElement.appendChild(CreateSprite(talent.icon, "icon"));
+				cell.rankElement = CreateElement("span", "rank");
+				cellElement.appendChild(cell.rankElement);
+				AddTalentEvents(view, cell);
+				view.cells.push(cell);
+			}
+			else if(entry && entry.sprite !== undefined)
+			{
+				cell.arrow = true;
+				cellElement.classList.add("arrow");
+				cellElement.appendChild(CreateSprite(entry.sprite));
+			}
+
+			cellGrid.push(cell);
+			grid.appendChild(cellElement);
+		}
+	}
+
+	// Arrows: connected arrow cells, lit when a talent they lead to can be learned or has points
+	let seen = new Set();
+	for(let start of cellGrid)
+	{
+		if(!start.arrow || seen.has(start))
+			continue;
+
+		let group = { cells: [], talents: new Set() };
+		let stack = [start];
+		seen.add(start);
+
+		while(stack.length > 0)
+		{
+			let cell = stack.pop();
+			group.cells.push(cell);
+
+			for(let [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]])
+			{
+				let nx = cell.x + dx;
+				let ny = cell.y + dy;
+				if(nx < 0 || ny < 0 || nx >= columns || ny >= rows)
+					continue;
+				let neighbor = cellGrid[nx + ny * columns];
+				if(neighbor.talentName)
+				{
+					group.talents.add(neighbor.talentName);
+				}
+				else if(neighbor.arrow && !seen.has(neighbor))
+				{
+					seen.add(neighbor);
+					stack.push(neighbor);
+				}
+			}
+		}
+
+		// The talents at the end of the arrows: the ones with a prerequisite also touching the arrows
+		group.targets = [...group.talents].filter(name => GetTalent(name).prerequisites.some(p => group.talents.has(p)));
+		view.arrowGroups.push(group);
+	}
+
+	element.appendChild(grid);
+	view.element = element;
+	return view;
+}
+
+function AddTalentEvents(aView, aCell)
+{
+	let element = aCell.element;
+
+	element.addEventListener("pointerdown", (event) =>
+	{
+		if(event.pointerType === "touch")
+		{
+			event.preventDefault();
+			g_touchTooltip = true;
+			ShowTooltip(aView, aCell, event.clientX, event.clientY);
+			return;
+		}
+
+		if(event.button === 2 || (event.button === 0 && event.shiftKey))
+			RemovePoint(aCell);
+		else if(event.button === 0)
+			AddPoint(aView, aCell);
+		else
+			return;
+
+		ShowTooltip(aView, aCell, event.clientX, event.clientY);
+	});
+
+	element.addEventListener("contextmenu", (event) => event.preventDefault());
+
+	element.addEventListener("pointerenter", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip)
+			ShowTooltip(aView, aCell, event.clientX, event.clientY);
+	});
+
+	element.addEventListener("pointermove", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip && g_tooltipTalent === aCell)
+			MoveTooltip(event.clientX, event.clientY);
+	});
+
+	element.addEventListener("pointerleave", (event) =>
+	{
+		if(event.pointerType !== "touch" && !g_touchTooltip && g_tooltipTalent === aCell)
+			HideTooltip();
+	});
+}
+
+function UpdateView()
+{
+	let spent = GetSpentPoints();
+	let left = g_manifest.talent_points - spent;
+
+	document.getElementById("points-left").textContent = left;
+	document.getElementById("points-left").classList.toggle("left", left > 0);
+	document.getElementById("required-level").textContent = spent + 1;
+
+	let hybrid = g_hybridTree ? g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree) : null;
+	document.getElementById("class-title").textContent = hybrid ? hybrid.string : g_class.string;
+
+	let uiSprites = g_manifest.ui_sprites;
+
+	for(let view of g_treeViews)
+	{
+		view.pointsElement.textContent = GetTreePoints(view.tree, g_points);
+
+		for(let cell of view.cells)
+		{
+			let points = GetPoints(cell.talentName);
+			let maxPoints = GetTalent(cell.talentName).ranks.length;
+			let available = CanAddPoint(view.tree, cell.talentName);
+			let state = points === maxPoints ? "max" : points > 0 ? "partial" : available ? "available" : "locked";
+
+			cell.element.classList.remove("max", "partial", "available", "locked");
+			cell.element.classList.add(state);
+			cell.rankElement.textContent = points + "/" + maxPoints;
+
+			let frame = { max: uiSprites.talent_tree_cell_yellow_bright, partial: uiSprites.talent_tree_cell_yellow, available: uiSprites.talent_tree_cell_green, locked: uiSprites.talent_tree_cell }[state];
+			let url = SpriteURL(frame);
+			if(cell.frame.src !== url)
+				cell.frame.src = url;
+		}
+
+		for(let group of view.arrowGroups)
+		{
+			let lit = group.targets.length === 0 || group.targets.some(name => GetPoints(name) > 0 || CanAddPoint(view.tree, name));
+			for(let cell of group.cells)
+				cell.element.classList.toggle("dim", !lit);
+		}
+	}
+
+	UpdateAbilities();
+}
+
+function BuildClassView()
+{
+	HideTooltip();
+
+	// Class buttons
+	for(let button of document.querySelectorAll("#classes button"))
+		button.classList.toggle("selected", button.dataset.name === g_class.name);
+
+	// Hybrid choice
+	let hybridElement = document.getElementById("hybrid");
+	hybridElement.textContent = "";
+
+	if(g_class.hybrid_talent_trees.length > 0)
+	{
+		hybridElement.appendChild(CreateElement("span", "", "Hybrid:"));
+
+		let hybridSelect = CreateElement("select");
+		hybridSelect.appendChild(new Option("None", ""));
+		for(let hybrid of g_class.hybrid_talent_trees)
+		{
+			let tree = g_talentTreesByName[hybrid.talent_tree];
+			// "Holy Fighter (Priest, Way of Healing)"
+			let donorClass = g_classesByTalentTreeName[hybrid.talent_tree];
+			hybridSelect.appendChild(new Option(hybrid.string + " (" + donorClass.string + ", " + tree.string + ")", hybrid.talent_tree));
+		}
+		hybridSelect.value = g_hybridTree || "";
+		hybridElement.appendChild(hybridSelect);
+
+		let replacedSelect = null;
+		if(g_hybridTree)
+		{
+			hybridElement.appendChild(CreateElement("span", "", "replacing"));
+			replacedSelect = CreateElement("select");
+			for(let tree of g_class.talent_trees)
+				replacedSelect.appendChild(new Option(tree.string, tree.name));
+			replacedSelect.value = g_replacedTree;
+			hybridElement.appendChild(replacedSelect);
+		}
+
+		let onChange = () =>
+		{
+			g_hybridTree = hybridSelect.value || null;
+			if(!g_hybridTree)
+				g_replacedTree = null;
+			else if(replacedSelect && hybridSelect.value)
+				g_replacedTree = replacedSelect.value;
+			else if(!g_replacedTree)
+				g_replacedTree = g_class.talent_trees[g_class.talent_trees.length - 1].name;
+			CleanUpPoints();
+			WriteHash();
+			BuildClassView();
+		};
+
+		hybridSelect.addEventListener("change", onChange);
+		if(replacedSelect)
+			replacedSelect.addEventListener("change", onChange);
+	}
+
+	// Trees
+	let treesElement = document.getElementById("trees");
+	treesElement.textContent = "";
+	g_treeViews = [];
+
+	for(let tree of GetCurrentTrees())
+	{
+		let view = CreateTreeView(tree);
+		g_treeViews.push(view);
+		treesElement.appendChild(view.element);
+	}
+
+	document.title = g_class.string + " - Trolddom Talent Calculator";
+
+	UpdateView();
+}
+
+function SelectClass(aClass)
+{
+	if(g_class === aClass)
+		return;
+	g_class = aClass;
+	g_hybridTree = null;
+	g_replacedTree = null;
+	g_points = {};
+	WriteHash();
+	BuildClassView();
+}
+
+//-----------------------------------------------------------------------------
+// Startup
+
+function Init(aManifest)
+{
+	g_manifest = aManifest;
+
+	// Only classes with talent trees
+	g_manifest.classes = g_manifest.classes.filter(c => c.talent_trees.length > 0);
+
+	for(let cls of g_manifest.classes)
+	{
+		g_classesByName[cls.name] = cls;
+		for(let tree of cls.talent_trees)
+		{
+			g_talentTreesByName[tree.name] = tree;
+			g_classesByTalentTreeName[tree.name] = cls;
+		}
+	}
+
+	// Hybrid trees that aren't in the manifest can't be shown
+	for(let cls of g_manifest.classes)
+		cls.hybrid_talent_trees = cls.hybrid_talent_trees.filter(h => g_talentTreesByName[h.talent_tree]);
+
+	let classesElement = document.getElementById("classes");
+	for(let cls of g_manifest.classes)
+	{
+		let button = CreateElement("button");
+		button.dataset.name = cls.name;
+		button.title = cls.description;
+		button.appendChild(CreateSprite(cls.sprite));
+		button.appendChild(CreateElement("span", "", cls.string));
+		button.addEventListener("click", () => SelectClass(cls));
+		classesElement.appendChild(button);
+	}
+
+	document.getElementById("reset-all").addEventListener("click", () =>
+	{
+		g_points = {};
+		OnBuildChanged();
+	});
+
+	document.getElementById("copy-link").addEventListener("click", (event) =>
+	{
+		let button = event.currentTarget;
+		let done = () => { button.textContent = "Copied"; setTimeout(() => button.textContent = "Copy link", 1500); };
+		if(navigator.clipboard)
+			navigator.clipboard.writeText(location.href).then(done, () => prompt("Link to this build:", location.href));
+		else
+			prompt("Link to this build:", location.href);
+	});
+
+	document.addEventListener("pointerdown", (event) =>
+	{
+		if(g_touchTooltip && !event.target.closest("#tooltip") && !event.target.closest(".cell.talent") && !event.target.closest(".ability"))
+			HideTooltip();
+	});
+
+	window.addEventListener("hashchange", () =>
+	{
+		ReadHash();
+		BuildClassView();
+	});
+
+	ReadHash();
+	WriteHash();
+
+	document.getElementById("status").hidden = true;
+	document.getElementById("app").hidden = false;
+
+	BuildClassView();
+}
+
+function Load()
+{
+	let params = new URLSearchParams(location.search);
+	let url = params.get("manifest") || "manifest.json";
+
+	// Always ask the server if the manifest changed (it does with each game update)
+	fetch(url, { cache: "no-cache" })
+		.then(response =>
+		{
+			if(!response.ok)
+				throw new Error(response.status + " " + response.statusText);
+			return response.json();
+		})
+		.then(Init)
+		.catch(error =>
+		{
+			let status = document.getElementById("status");
+			status.textContent = "Failed to load " + url + ": " + error.message;
+
+			// Browsers don't let a page opened from disk load other files
+			if(location.protocol === "file:")
+				status.textContent += ". The page has to be served by a web server, e.g. run \"py -m http.server 8000\" in this folder and open http://localhost:8000/";
+			status.classList.add("error");
+		});
+}
+
+Load();
+</script>
+</body>
+</html>
