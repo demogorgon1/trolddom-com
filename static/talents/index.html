@@ -175,6 +175,15 @@ img.pixel
 
 /* Trees */
 
+/* Centered and no wider than the trees side by side, so the summary and abilities bars don't stretch across wide
+   screens */
+body
+{
+	width: fit-content;
+	max-width: 100%;
+	margin: 0 auto;
+}
+
 #trees
 {
 	display: flex;
@@ -507,6 +516,12 @@ footer
 	body
 	{
 		padding: 8px;
+	}
+
+	/* #trees is a size container here, so it has no width of its own to fit to */
+	body
+	{
+		width: auto;
 	}
 
 	/* Cells shrink so the widest trees (9 columns) fit: 46px is the tree and grid padding and borders. 100cqw is the
