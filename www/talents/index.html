@@ -173,6 +173,47 @@ img.pixel
 	color: var(--text-dim);
 }
 
+/* Achievements needed to make the class or hybrid in the game */
+
+#requirements
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 16px;
+	margin-bottom: 12px;
+	color: var(--text-dim);
+}
+
+#requirements[hidden]
+{
+	display: none;
+}
+
+#requirements .achievement
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+#requirements .achievement img
+{
+	width: 32px;
+	height: 32px;
+}
+
+#requirements .name
+{
+	font-weight: 600;
+	color: var(--gold);
+}
+
+#requirements .description
+{
+	font-size: 12px;
+}
+
 /* Trees */
 
 /* Centered and no wider than the trees side by side, so the summary and abilities bars don't stretch across wide
@@ -564,6 +605,7 @@ footer
 		</span>
 	</div>
 	<div id="hybrid"></div>
+	<div id="requirements" hidden></div>
 	<div id="abilities"></div>
 	<div id="trees"></div>
 	<footer>Click to learn a talent, right-click (or shift-click) to unlearn. On touch screens, tap a talent for its buttons.</footer>
@@ -1163,13 +1205,17 @@ function HideTooltip()
 function GetBuildAbilities()
 {
 	let list = g_class.abilities;
-	if(g_hybridTree)
+	let itemTypes = [];
+	let hybrid = g_hybridTree ? g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree) : null;
+	if(hybrid)
 	{
-		let hybrid = g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree);
 		list = hybrid.abilities[g_replacedTree] || list;
+		itemTypes = hybrid.item_types || [];
 	}
 
-	let abilities = list.map(entry => ({ name: entry.ability, level: entry.level, talentName: null }));
+	// Item types the hybrid can use (and the class can't) are shown first, like abilities learned at level 1
+	let abilities = itemTypes.map(itemType => ({ name: null, itemType: itemType, hybridString: hybrid.string, level: 1, talentName: null }));
+	abilities = abilities.concat(list.map(entry => ({ name: entry.ability, level: entry.level, talentName: null })));
 	let names = new Set(abilities.map(entry => entry.name));
 
 	for(let tree of GetCurrentTrees())
@@ -1186,7 +1232,7 @@ function GetBuildAbilities()
 		}
 	}
 
-	return abilities.filter(entry => g_manifest.abilities[entry.name]);
+	return abilities.filter(entry => entry.itemType || g_manifest.abilities[entry.name]);
 }
 
 // Range, cost, cast time and cooldown changes from the build's ability modifiers
@@ -1220,12 +1266,48 @@ function FormatSeconds(aTenths)
 function ShowAbilityTooltip(aEntry, aX, aY)
 {
 	let tooltip = document.getElementById("tooltip");
-	let ability = g_manifest.abilities[aEntry.name];
-	let modifications = GetAbilityModifications(aEntry.name);
 
 	g_tooltipTalent = aEntry;
 
 	tooltip.textContent = "";
+
+	if(aEntry.itemType)
+	{
+		// Item type a hybrid can use, shown like an ability
+		let head = CreateElement("div", "head");
+		head.appendChild(CreateElement("span", "name", aEntry.itemType.string));
+		tooltip.appendChild(head);
+		tooltip.appendChild(CreateElement("p", "", "Can equip " + aEntry.itemType.string.toLowerCase() + "."));
+		tooltip.appendChild(CreateElement("div", "source", "From hybrid: " + aEntry.hybridString));
+	}
+	else
+	{
+		AddAbilityTooltipContent(tooltip, aEntry);
+	}
+
+	if(g_touchTooltip)
+	{
+		let buttons = CreateElement("div", "touch-buttons");
+		let closeButton = CreateElement("button", "", "Close");
+		closeButton.addEventListener("click", HideTooltip);
+		buttons.appendChild(closeButton);
+		tooltip.appendChild(buttons);
+		tooltip.classList.add("touch");
+	}
+	else
+	{
+		tooltip.classList.remove("touch");
+	}
+
+	tooltip.style.display = "block";
+	MoveTooltip(aX, aY);
+}
+
+function AddAbilityTooltipContent(aTooltip, aEntry)
+{
+	let tooltip = aTooltip;
+	let ability = g_manifest.abilities[aEntry.name];
+	let modifications = GetAbilityModifications(aEntry.name);
 
 	let head = CreateElement("div", "head");
 	head.appendChild(CreateElement("span", "name", ability.string));
@@ -1277,23 +1359,6 @@ function ShowAbilityTooltip(aEntry, aX, aY)
 		tooltip.appendChild(CreateElement("div", "source", "From talent: " + GetTalent(aEntry.talentName).string));
 	else
 		tooltip.appendChild(CreateElement("div", "source", "Learned at level " + aEntry.level));
-
-	if(g_touchTooltip)
-	{
-		let buttons = CreateElement("div", "touch-buttons");
-		let closeButton = CreateElement("button", "", "Close");
-		closeButton.addEventListener("click", HideTooltip);
-		buttons.appendChild(closeButton);
-		tooltip.appendChild(buttons);
-		tooltip.classList.add("touch");
-	}
-	else
-	{
-		tooltip.classList.remove("touch");
-	}
-
-	tooltip.style.display = "block";
-	MoveTooltip(aX, aY);
 }
 
 function UpdateAbilities()
@@ -1313,10 +1378,9 @@ function UpdateAbilities()
 		}
 
 		// Some abilities (like Attack) show the icon of the class' start weapon
-		let ability = g_manifest.abilities[entry.name];
-		let icon = (g_class.ability_icons || {})[entry.name];
+		let icon = entry.itemType ? entry.itemType.icon : (g_class.ability_icons || {})[entry.name];
 		if(icon === undefined)
-			icon = ability.icon;
+			icon = g_manifest.abilities[entry.name].icon;
 		let item = CreateElement("div", "ability" + (entry.talentName ? " talent" : ""));
 		if(icon !== null)
 			item.appendChild(CreateSprite(icon));
@@ -1626,6 +1690,16 @@ function UpdateView()
 	UpdateAbilities();
 }
 
+function CreateAchievement(aName)
+{
+	let achievement = g_manifest.achievements[aName];
+	let element = CreateElement("span", "achievement");
+	element.appendChild(CreateSprite(achievement.icon));
+	element.appendChild(CreateElement("span", "name", achievement.string));
+	element.appendChild(CreateElement("span", "description", achievement.description));
+	return element;
+}
+
 function BuildClassView()
 {
 	HideTooltip();
@@ -1683,6 +1757,25 @@ function BuildClassView()
 		if(replacedSelect)
 			replacedSelect.addEventListener("change", onChange);
 	}
+
+	// Achievements needed for the class and the hybrid
+	let requirementsElement = document.getElementById("requirements");
+	requirementsElement.textContent = "";
+
+	let achievementNames = [];
+	if(g_class.unlocked_by_achievement)
+		achievementNames.push(g_class.unlocked_by_achievement);
+	let hybrid = g_hybridTree ? g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree) : null;
+	if(hybrid && hybrid.required_achievement && !achievementNames.includes(hybrid.required_achievement))
+		achievementNames.push(hybrid.required_achievement);
+
+	if(achievementNames.length > 0)
+	{
+		requirementsElement.appendChild(CreateElement("span", "", achievementNames.length > 1 ? "Requires achievements:" : "Requires achievement:"));
+		for(let name of achievementNames)
+			requirementsElement.appendChild(CreateAchievement(name));
+	}
+	requirementsElement.hidden = achievementNames.length === 0;
 
 	// Trees
 	let treesElement = document.getElementById("trees");
@@ -1743,6 +1836,8 @@ function Init(aManifest)
 		let button = CreateElement("button");
 		button.dataset.name = cls.name;
 		button.title = cls.description;
+		if(cls.unlocked_by_achievement)
+			button.title += "\nRequires achievement: " + g_manifest.achievements[cls.unlocked_by_achievement].string;
 		button.appendChild(CreateSprite(cls.sprite));
 		button.appendChild(CreateElement("span", "", cls.string));
 		button.addEventListener("click", () => SelectClass(cls));
