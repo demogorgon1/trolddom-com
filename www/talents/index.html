@@ -586,6 +586,7 @@ footer
 	}
 }
 </style>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="9f1de249-1572-4794-8bc6-ddc1af53c323"></script>
 </head>
 <body>
 
@@ -1206,15 +1207,18 @@ function GetBuildAbilities()
 {
 	let list = g_class.abilities;
 	let itemTypes = [];
+	let passiveAuras = [];
 	let hybrid = g_hybridTree ? g_class.hybrid_talent_trees.find(h => h.talent_tree === g_hybridTree) : null;
 	if(hybrid)
 	{
 		list = hybrid.abilities[g_replacedTree] || list;
 		itemTypes = hybrid.item_types || [];
+		passiveAuras = (hybrid.passive_auras || {})[g_replacedTree] || [];
 	}
 
-	// Item types the hybrid can use (and the class can't) are shown first, like abilities learned at level 1
-	let abilities = itemTypes.map(itemType => ({ name: null, itemType: itemType, hybridString: hybrid.string, level: 1, talentName: null }));
+	// Passive auras and item types the hybrid gets (and the class doesn't) are shown first, like abilities learned at level 1
+	let abilities = passiveAuras.map(aura => ({ name: null, passiveAura: aura, hybridString: hybrid.string, level: 1, talentName: null }));
+	abilities = abilities.concat(itemTypes.map(itemType => ({ name: null, itemType: itemType, hybridString: hybrid.string, level: 1, talentName: null })));
 	abilities = abilities.concat(list.map(entry => ({ name: entry.ability, level: entry.level, talentName: null })));
 	let names = new Set(abilities.map(entry => entry.name));
 
@@ -1232,7 +1236,7 @@ function GetBuildAbilities()
 		}
 	}
 
-	return abilities.filter(entry => entry.itemType || g_manifest.abilities[entry.name]);
+	return abilities.filter(entry => entry.itemType || entry.passiveAura || g_manifest.abilities[entry.name]);
 }
 
 // Range, cost, cast time and cooldown changes from the build's ability modifiers
@@ -1278,6 +1282,16 @@ function ShowAbilityTooltip(aEntry, aX, aY)
 		head.appendChild(CreateElement("span", "name", aEntry.itemType.string));
 		tooltip.appendChild(head);
 		tooltip.appendChild(CreateElement("p", "", "Can equip " + aEntry.itemType.string.toLowerCase() + "."));
+		tooltip.appendChild(CreateElement("div", "source", "From hybrid: " + aEntry.hybridString));
+	}
+	else if(aEntry.passiveAura)
+	{
+		// Permanent passive aura of a hybrid, shown like a passive talent
+		let head = CreateElement("div", "head");
+		head.appendChild(CreateElement("span", "name", aEntry.passiveAura.string));
+		head.appendChild(CreateElement("span", "type", "Passive"));
+		tooltip.appendChild(head);
+		tooltip.appendChild(CreateElement("p", "", aEntry.passiveAura.description));
 		tooltip.appendChild(CreateElement("div", "source", "From hybrid: " + aEntry.hybridString));
 	}
 	else
@@ -1378,7 +1392,7 @@ function UpdateAbilities()
 		}
 
 		// Some abilities (like Attack) show the icon of the class' start weapon
-		let icon = entry.itemType ? entry.itemType.icon : (g_class.ability_icons || {})[entry.name];
+		let icon = entry.passiveAura ? entry.passiveAura.icon : entry.itemType ? entry.itemType.icon : (g_class.ability_icons || {})[entry.name];
 		if(icon === undefined)
 			icon = g_manifest.abilities[entry.name].icon;
 		let item = CreateElement("div", "ability" + (entry.talentName ? " talent" : ""));
